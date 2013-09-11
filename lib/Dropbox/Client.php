@@ -335,7 +335,7 @@ class Client
      *
      * @throws Exception
      */
-    function uploadFileChunked($path, $writeMode, $inStream, $numBytes = null, $chunkSize = null)
+    function uploadFileChunked($path, $writeMode, $inStream, $numBytes = null, $chunkSize = null, callable $chunkCallback = null)
     {
         if ($chunkSize === null) {
             $chunkSize = self::$DEFAULT_CHUNK_SIZE;
@@ -347,7 +347,7 @@ class Client
         Checker::argNatOrNull("numBytes", $numBytes);
         Checker::argIntPositive("chunkSize", $chunkSize);
 
-        return $this->_uploadFileChunked($path, $writeMode, $inStream, $numBytes, $chunkSize);
+        return $this->_uploadFileChunked($path, $writeMode, $inStream, $numBytes, $chunkSize, $chunkCallback);
     }
 
     /**
@@ -370,7 +370,7 @@ class Client
      *    The <a href="https://www.dropbox.com/developers/core/api#metadata-details>metadata
      *    object</a> for the newly-added file.
      */
-    private function _uploadFileChunked($path, $writeMode, $inStream, $numBytes, $chunkSize)
+    private function _uploadFileChunked($path, $writeMode, $inStream, $numBytes, $chunkSize, callable $chunkCallback = null)
     {
         Path::checkArg("path", $path);
         WriteMode::checkArg("writeMode", $writeMode);
@@ -406,6 +406,9 @@ class Client
 
                 if ($r === true) {  // Chunk got uploaded!
                     $byteOffset += $len;
+                    
+                    if (!is_null($chunkCallback)) $chunkCallback($byteOffset);
+                    
                     break;
                 }
                 if ($r === false) {  // Server didn't recognize our upload ID
